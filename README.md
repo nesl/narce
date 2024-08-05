@@ -1,3 +1,3 @@
 # narce
 
-Neural algorithmic reasoner-based complex evenmt detection framework.
+A complex event detection framework based on Neural Algorithmic Reasoner(NAR).
