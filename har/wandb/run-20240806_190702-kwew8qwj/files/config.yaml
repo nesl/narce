@@ -1,0 +1,56 @@
+wandb_version: 1
+
+nar_learning_rate:
+  desc: null
+  value: 0.001
+nar_epochs:
+  desc: null
+  value: 10000
+nar_batch_size:
+  desc: null
+  value: 256
+nar_train_data:
+  desc: null
+  value: ./data/CE_dataset/nar_5min_full_train_data_20000.npy
+model:
+  desc: null
+  value: narce/saved_model/nar/mamba2_v1-20000-53.pt
+_wandb:
+  desc: null
+  value:
+    python_version: 3.12.2
+    cli_version: 0.17.5
+    framework: huggingface
+    huggingface_version: 4.41.0
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1722996422
+    t:
+      1:
+      - 1
+      - 5
+      - 11
+      - 49
+      - 53
+      - 55
+      - 71
+      - 105
+      2:
+      - 1
+      - 5
+      - 11
+      - 49
+      - 53
+      - 55
+      - 71
+      - 105
+      3:
+      - 13
+      - 16
+      - 23
+      4: 3.12.2
+      5: 0.17.5
+      6: 4.41.0
+      8:
+      - 5
+      13: linux-x86_64

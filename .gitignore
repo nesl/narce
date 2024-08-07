@@ -1,0 +1,6 @@
+CE_dataset/
+IMU/
+Audio/
+har/data/Multimodal/*.npz
+*.pyc
+__pycache__/

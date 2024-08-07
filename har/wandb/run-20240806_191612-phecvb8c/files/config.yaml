@@ -1,0 +1,57 @@
+wandb_version: 1
+
+adapter_learning_rate:
+  desc: null
+  value: 0.001
+adapter_epochs:
+  desc: null
+  value: 1
+adapter_batch_size:
+  desc: null
+  value: 256
+adapter_train_data:
+  desc: null
+  value: ./data/CE_dataset/ce5min_train_data_2000.npy
+model:
+  desc: null
+  value: narce/saved_model/pipeline/mamba2_v1-20000-mamba2_6L-2000-97.pt
+_wandb:
+  desc: null
+  value:
+    python_version: 3.12.2
+    cli_version: 0.17.5
+    framework: huggingface
+    huggingface_version: 4.41.0
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1722996972
+    t:
+      1:
+      - 1
+      - 5
+      - 11
+      - 49
+      - 53
+      - 55
+      - 71
+      - 105
+      2:
+      - 1
+      - 5
+      - 11
+      - 49
+      - 53
+      - 55
+      - 71
+      - 105
+      3:
+      - 2
+      - 13
+      - 16
+      - 23
+      4: 3.12.2
+      5: 0.17.5
+      6: 4.41.0
+      8:
+      - 5
+      13: linux-x86_64

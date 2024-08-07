@@ -1,0 +1,27 @@
+2024-08-06 19:07:02,769 INFO    MainThread:461941 [wandb_setup.py:_flush():76] Current SDK version is 0.17.5
+2024-08-06 19:07:02,769 INFO    MainThread:461941 [wandb_setup.py:_flush():76] Configure stats pid to 461941
+2024-08-06 19:07:02,769 INFO    MainThread:461941 [wandb_setup.py:_flush():76] Loading settings from /home/nesl/.config/wandb/settings
+2024-08-06 19:07:02,769 INFO    MainThread:461941 [wandb_setup.py:_flush():76] Loading settings from /home/nesl/Documents/narce/har/wandb/settings
+2024-08-06 19:07:02,769 INFO    MainThread:461941 [wandb_setup.py:_flush():76] Loading settings from environment variables: {'api_key': '***REDACTED***'}
+2024-08-06 19:07:02,769 INFO    MainThread:461941 [wandb_setup.py:_flush():76] Applying setup settings: {'_disable_service': False}
+2024-08-06 19:07:02,769 INFO    MainThread:461941 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program_relpath': 'har/narce.py', 'program_abspath': '/home/nesl/Documents/narce/har/narce.py', 'program': '/home/nesl/Documents/narce/har/narce.py'}
+2024-08-06 19:07:02,769 INFO    MainThread:461941 [wandb_setup.py:_flush():76] Applying login settings: {}
+2024-08-06 19:07:02,769 INFO    MainThread:461941 [wandb_init.py:_log_setup():529] Logging user logs to /home/nesl/Documents/narce/har/wandb/run-20240806_190702-kwew8qwj/logs/debug.log
+2024-08-06 19:07:02,770 INFO    MainThread:461941 [wandb_init.py:_log_setup():530] Logging internal logs to /home/nesl/Documents/narce/har/wandb/run-20240806_190702-kwew8qwj/logs/debug-internal.log
+2024-08-06 19:07:02,770 INFO    MainThread:461941 [wandb_init.py:init():569] calling init triggers
+2024-08-06 19:07:02,770 INFO    MainThread:461941 [wandb_init.py:init():576] wandb.init called with sweep_config: {}
+config: {'nar_learning_rate': 0.001, 'nar_epochs': 10000, 'nar_batch_size': 256, 'nar_train_data': './data/CE_dataset/nar_5min_full_train_data_20000.npy', 'model': 'narce/saved_model/nar/mamba2_v1-20000-53.pt'}
+2024-08-06 19:07:02,770 INFO    MainThread:461941 [wandb_init.py:init():619] starting backend
+2024-08-06 19:07:02,770 INFO    MainThread:461941 [wandb_init.py:init():623] setting up manager
+2024-08-06 19:07:02,771 INFO    MainThread:461941 [backend.py:_multiprocessing_setup():105] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2024-08-06 19:07:02,772 INFO    MainThread:461941 [wandb_init.py:init():631] backend started and connected
+2024-08-06 19:07:02,775 INFO    MainThread:461941 [wandb_init.py:init():720] updated telemetry
+2024-08-06 19:07:02,778 INFO    MainThread:461941 [wandb_init.py:init():753] communicating run to backend with 90.0 second timeout
+2024-08-06 19:07:03,045 INFO    MainThread:461941 [wandb_run.py:_on_init():2435] communicating current version
+2024-08-06 19:07:03,073 INFO    MainThread:461941 [wandb_run.py:_on_init():2444] got version response 
+2024-08-06 19:07:03,073 INFO    MainThread:461941 [wandb_init.py:init():804] starting run threads in backend
+2024-08-06 19:07:04,911 INFO    MainThread:461941 [wandb_run.py:_console_start():2413] atexit reg
+2024-08-06 19:07:04,911 INFO    MainThread:461941 [wandb_run.py:_redirect():2255] redirect: wrap_raw
+2024-08-06 19:07:04,911 INFO    MainThread:461941 [wandb_run.py:_redirect():2320] Wrapping output streams.
+2024-08-06 19:07:04,911 INFO    MainThread:461941 [wandb_run.py:_redirect():2345] Redirects installed.
+2024-08-06 19:07:04,912 INFO    MainThread:461941 [wandb_init.py:init():847] run started, returning control to user process
