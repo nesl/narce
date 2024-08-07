@@ -1,4 +1,5 @@
 from tqdm import tqdm
+import copy
 import numpy as np
 import torch
 from torch import nn
@@ -412,7 +413,7 @@ def test_iterative(model, data_loader, criterion, src_mask=None, criterion2=nn.C
 def train_narce(model, train_loader, val_loader, n_epochs, lr, criterion, save_path, criterion2=nn.CrossEntropyLoss(), device='cpu'):
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
     # early_stopper = EarlyStopper(patience=50, min_delta=0.001)
-    early_stopper = EarlyStopper(patience=30, min_delta=0)
+    early_stopper = EarlyStopper(patience=30, min_delta=1e-6)
     summary = {'train_loss': [[] for _ in range(n_epochs)], 
                'train_label_acc': [[] for _ in range(n_epochs)], 
                'val_loss': [[] for _ in range(n_epochs)], 
@@ -450,9 +451,6 @@ def train_narce(model, train_loader, val_loader, n_epochs, lr, criterion, save_p
             acc = torch.sum(xpred == labels)/(x.shape[0] * x.shape[-1])
             summary['train_label_acc'][e].append(acc.item())
 
-        # Save model every 2000 epochs
-        if e % 2000 == 0 and e > 0:
-            torch.save(model.state_dict(), save_path)
 
         # Test on validation set
         # model.to('cpu') # mamba has some issue on cpu
@@ -500,12 +498,20 @@ def train_narce(model, train_loader, val_loader, n_epochs, lr, criterion, save_p
                    }
         wandb.log(metrics)
         
+        if np.mean(summary['val_loss'][e]) < early_stopper.min_validation_loss:
+            best_model = copy.deepcopy(model)
+
+        # Save the best model every 1000 epochs
+        if e % 1000 == 0 and e > 0:
+            torch.save(best_model.state_dict(), save_path)
+
         if early_stopper.early_stop(np.mean(summary['val_loss'][e])):  
             print("Early-stop at epoch:", e)           
             break
+
     
     # Save model after training
-    torch.save(model.state_dict(), save_path)
+    torch.save(best_model.state_dict(), save_path)
 
     return summary
 

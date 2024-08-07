@@ -4,3 +4,4 @@ Audio/
 har/data/Multimodal/*.npz
 *.pyc
 __pycache__/
+wandb/
