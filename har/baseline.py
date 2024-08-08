@@ -1,5 +1,7 @@
 import argparse
 import numpy as np
+from pathlib import Path
+
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -39,6 +41,8 @@ criterion = focal_loss(alpha=torch.tensor([.005, 0.45, 0.45, 0.45]),gamma=2)
 if args.model == 'lstm' or args.model == 'tcn' or args.model == 'transformer' or args.model == 'mamba1' or args.model == 'mamba2':
     train_data_file = './data/CE_dataset/ce5min_train_data_{}.npy'.format(args.dataset)
     train_label_file = './data/CE_dataset/ce5min_train_labels_{}.npy'.format(args.dataset)
+    val_data_file = './data/CE_dataset/ce5min_val_data.npy'
+    val_label_file = './data/CE_dataset/ce5min_val_labels.npy'
     test_data_file = './data/CE_dataset/ce5min_test_data.npy'
     test_label_file = './data/CE_dataset/ce5min_test_labels.npy'
 
@@ -53,18 +57,25 @@ else:
 
 ce_train_data = np.load(train_data_file)
 ce_train_labels = np.load(train_label_file)
+ce_val_data = np.load(val_data_file)
+ce_val_labels = np.load(val_label_file)
 ce_test_data = np.load(test_data_file)
 ce_test_labels = np.load(test_label_file)
 
 print(train_data_file)
-print(ce_train_data.shape, ce_train_labels.shape, ce_test_data.shape, ce_test_labels.shape)
+print(ce_train_data.shape, ce_train_labels.shape, ce_val_data.shape, ce_val_labels.shape, ce_test_data.shape, ce_test_labels.shape)
 
 ce_train_dataset = CEDataset(ce_train_data, ce_train_labels)
 ce_train_loader = DataLoader(ce_train_dataset, 
                              batch_size=batch_size, 
                              shuffle=True, 
-                            #  num_workers=4
+                             num_workers=2
                              )
+ce_val_dataset = CEDataset(ce_val_data, ce_val_labels)
+ce_val_loader = DataLoader(ce_val_dataset,
+                            batch_size=batch_size,
+                            shuffle=False, 
+                            )
 ce_test_dataset = CEDataset(ce_test_data, ce_test_labels)
 ce_test_loader = DataLoader(ce_test_dataset, 
                             batch_size=batch_size, 
@@ -105,20 +116,23 @@ summary(model)
 
 """ Training and Testing """
 
+# Creare dirctory if it doesn't exist
+Path('baseline/saved_model/').mkdir(parents=True, exist_ok=True)
+model_path = 'baseline/saved_model/{}-{}-{}.pt'.format(args.model, args.dataset, args.seed)
+
 src_causal_mask = create_src_causal_mask(ce_train_data.shape[1]) if args.model == 'transformer' or args.model == 'ae_transformer' else None
 
 train(
     model=model,
     train_loader=ce_train_loader,
-    val_loader=ce_test_loader, # need to generate validation data
+    val_loader=ce_val_loader, 
     n_epochs=n_epochs,
     lr=learning_rate,
     criterion=criterion,
+    save_path=model_path,
     src_mask=src_causal_mask,
     device=device
     )
-
-torch.save(model.state_dict(), 'baseline/saved_models/{}-{}-{}.pt'.format(args.model, args.dataset, args.seed))
 
 test(
     model=model,

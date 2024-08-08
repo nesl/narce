@@ -43,7 +43,7 @@ class EarlyStopper:
         return False
 
 
-def train(model, train_loader, val_loader, n_epochs, lr, criterion, src_mask=None, multi_task=False, criterion2=nn.CrossEntropyLoss(), device='cpu'):
+def train(model, train_loader, val_loader, n_epochs, lr, criterion, save_path, src_mask=None, multi_task=False, criterion2=nn.CrossEntropyLoss(), device='cpu'):
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
     # early_stopper = EarlyStopper(patience=50, min_delta=0.001)
     early_stopper = EarlyStopper(patience=30, min_delta=1e-6)
@@ -173,10 +173,21 @@ def train(model, train_loader, val_loader, n_epochs, lr, criterion, src_mask=Non
                 np.mean(summary['val_loss'][e]), 
                 np.mean(summary['val_label_acc'][e]),
                 np.mean(summary['val_state_acc'][e]), ))
-        
+
+        if np.mean(summary['val_loss'][e]) < early_stopper.min_validation_loss:
+            best_model = copy.deepcopy(model)
+
+        # Save the best model every 1000 epochs
+        if e % 1000 == 0 and e > 0:
+            torch.save(best_model.state_dict(), save_path)
+
         if early_stopper.early_stop(np.mean(summary['val_loss'][e])):  
             print("Early-stop at epoch:", e)           
             break
+
+    
+    # Save model after training
+    torch.save(best_model.state_dict(), save_path)
 
     return summary
 
