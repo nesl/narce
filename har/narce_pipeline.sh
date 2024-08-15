@@ -3,9 +3,9 @@
 nar_model=mamba2_v1
 adapter_model=mamba2_12L
 train=pipeline
-nar_dataset=20000
-for sensor_dataset in 2000; do
-    for seed in 53 99719; do # 53 97 103 191 99719; do
+nar_dataset=10000
+for sensor_dataset in 4000; do
+    for seed in 53 97 103 191 99719; do # 53 97 103 191 99719; do
         echo $nar_model
         echo $adapter_model
         echo $train

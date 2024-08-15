@@ -46,7 +46,7 @@ class EarlyStopper:
 def train(model, train_loader, val_loader, n_epochs, lr, criterion, save_path, src_mask=None, multi_task=False, criterion2=nn.CrossEntropyLoss(), device='cpu'):
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
     # early_stopper = EarlyStopper(patience=50, min_delta=0.001)
-    early_stopper = EarlyStopper(patience=30, min_delta=1e-6)
+    early_stopper = EarlyStopper(patience=30, min_delta=1e-4)
     summary = {'train_loss': [[] for _ in range(n_epochs)], 
                'train_label_acc': [[] for _ in range(n_epochs)], 
                'train_state_acc': [[] for _ in range(n_epochs)], 
@@ -54,8 +54,8 @@ def train(model, train_loader, val_loader, n_epochs, lr, criterion, save_path, s
                'val_label_acc': [[] for _ in range(n_epochs)],
                'val_state_acc': [[] for _ in range(n_epochs)]}
 
-    print("Epoch:", e)
     for e in tqdm(range(n_epochs)):
+        print("Epoch:", e)
         model.to(device)
         model.train()
         for i, batch in enumerate(train_loader):
@@ -421,10 +421,13 @@ def test_iterative(model, data_loader, criterion, src_mask=None, criterion2=nn.C
                                                                                                         ))
     
 
-def train_narce(model, train_loader, val_loader, n_epochs, lr, criterion, save_path, criterion2=nn.CrossEntropyLoss(), device='cpu'):
+def train_narce(model, train_loader, val_loader, n_epochs, lr, criterion, save_path, is_train_adapter=False, device='cpu'):
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
     # early_stopper = EarlyStopper(patience=50, min_delta=0.001)
-    early_stopper = EarlyStopper(patience=30, min_delta=1e-6)
+    if is_train_adapter:
+        early_stopper = EarlyStopper(patience=30, min_delta=1e-4)
+    else:
+        early_stopper = EarlyStopper(patience=30, min_delta=1e-6)
     summary = {'train_loss': [[] for _ in range(n_epochs)], 
                'train_label_acc': [[] for _ in range(n_epochs)], 
                'val_loss': [[] for _ in range(n_epochs)], 

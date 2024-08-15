@@ -483,3 +483,19 @@ class MambaModel(nn.Module, GenerationMixin):
         with open(config_path, 'w') as f:
             json.dump(self.config.__dict__, f, indent=4)
 
+
+class BaselineMamba(nn.Module):
+    def __init__(
+    self, 
+    mamba_config, 
+    out_cls_dim,
+    ) -> None:
+        super().__init__()
+        d_model = mamba_config.d_model
+        self.backbone = MambaModel(mamba_config)
+        self.classifier = nn.Linear(d_model, out_cls_dim)
+
+    def forward(self, x):
+        x = self.backbone(x)
+        x = self.classifier(x)
+        return x

@@ -12,7 +12,7 @@ from train import train_narce, test_narce
 from loss import focal_loss
 
 from mamba_ssm.models.config_mamba import MambaConfig
-from nar_model import MambaConfig, NARMamba, AdapterMamba, NarcePipeline
+from nar_model import NARMamba, AdapterMamba, NarcePipeline
 
 import os
 import wandb
@@ -22,10 +22,10 @@ parser = argparse.ArgumentParser(description='NARCE Pipeline Training')
 parser.add_argument('nar_model', type=str, choices=['mamba2_v1'])
 parser.add_argument('adapter_model', type=str, choices=['mamba2_6L', 'mamba2_12L'])
 parser.add_argument('train', type=str, choices=['pipeline', 'nar', 'adapter'])
-parser.add_argument('nar_dataset', type=int, help='Dataset size', choices=[2000, 4000, 6000, 8000, 10000, 20000])
+parser.add_argument('nar_dataset', type=int, help='Dataset size', choices=[10000, 20000, 40000])
 parser.add_argument('sensor_dataset', type=int, help='Dataset size', choices=[2000, 4000, 6000, 8000, 10000])
 parser.add_argument('seed',  type=int, help='Random seed') #0, 17, 1243, 3674, 7341, 53, 97, 103, 191, 99719
-parser.add_argument('-gpu', '--gpu', default=0, type=int, choices=[0,1], required=False)
+parser.add_argument('-g', '--gpu', default=0, type=int, choices=[0,1,2,3], required=False)
 
 args = parser.parse_args()
 
@@ -36,8 +36,8 @@ set_seeds(args.seed)
 
 batch_size_nar = 256
 batch_size_adapter = 256
-n_epochs_nar = 10000
-n_epochs_adapter = 50000
+n_epochs_nar = 5000
+n_epochs_adapter = 20000
 learning_rate_nar = 1e-3
 learning_rate_adapter = 1e-3
 device = torch.device("cuda:{}".format(args.gpu) if torch.cuda.is_available() else "cpu")
@@ -52,12 +52,19 @@ nar_val_label_file = './data/CE_dataset/nar_5min_full_val_labels.npy'
 nar_test_data_file = './data/CE_dataset/nar_5min_full_test_data.npy'
 nar_test_label_file = './data/CE_dataset/nar_5min_full_test_labels.npy'
 
-sensor_train_data_file = './data/CE_dataset/ce5min_train_data_{}.npy'.format(args.sensor_dataset)
-sensor_train_label_file = './data/CE_dataset/ce5min_train_labels_{}.npy'.format(args.sensor_dataset)
-sensor_val_data_file = './data/CE_dataset/ce5min_val_data.npy'
-sensor_val_label_file = './data/CE_dataset/ce5min_val_labels.npy'
-sensor_test_data_file = './data/CE_dataset/ce5min_test_data.npy'
-sensor_test_label_file = './data/CE_dataset/ce5min_test_labels.npy'
+# sensor_train_data_file = './data/CE_dataset/ce5min_train_data_{}.npy'.format(args.sensor_dataset)
+# sensor_train_label_file = './data/CE_dataset/ce5min_train_labels_{}.npy'.format(args.sensor_dataset)
+# sensor_val_data_file = './data/CE_dataset/ce5min_val_data.npy'
+# sensor_val_label_file = './data/CE_dataset/ce5min_val_labels.npy'
+# sensor_test_data_file = './data/CE_dataset/ce5min_test_data.npy'
+# sensor_test_label_file = './data/CE_dataset/ce5min_test_labels.npy'
+
+sensor_train_data_file = './data/CE_dataset/ce5min_full_train_data_{}.npy'.format(args.sensor_dataset)
+sensor_train_label_file = './data/CE_dataset/ce5min_full_train_labels_{}.npy'.format(args.sensor_dataset)
+sensor_val_data_file = './data/CE_dataset/ce5min_full_val_data.npy'
+sensor_val_label_file = './data/CE_dataset/ce5min_full_val_labels.npy'
+sensor_test_data_file = './data/CE_dataset/ce5min_full_test_data.npy'
+sensor_test_label_file = './data/CE_dataset/ce5min_full_test_labels.npy'
 
 nar_train_data = np.load(nar_train_data_file)
 nar_train_labels = np.load(nar_train_label_file)
@@ -134,7 +141,7 @@ summary(embed_nar_model)
 # Creare dirctory if it doesn't exist
 Path('narce/saved_model/nar/').mkdir(parents=True, exist_ok=True)
 embed_nar_model_path = 'narce/saved_model/nar/{}-{}-{}.pt'.format(args.nar_model, args.nar_dataset, args.seed)
-# nar_model_path = 'nar/saved_models/NAR_backbone/full-nar_mamba2-10000-53.pt' # Use the current best model
+# embed_nar_model_path = 'narce/saved_model/nar/{}-{}-53.pt'.format(args.nar_model, args.nar_dataset) # Use the current best model
 
 if args.train == 'pipeline' or args.train == 'nar':
     # First phase: training NAR
@@ -212,7 +219,7 @@ if args.train == 'pipeline' or args.train == 'adapter':
     summary(narce_model)
 
     Path('narce/saved_model/pipeline/').mkdir(parents=True, exist_ok=True)
-    narce_model_path = 'narce/saved_model/pipeline/{}-{}-{}-{}-{}.pt'.format(args.nar_model, args.nar_dataset, args.adapter_model, args.sensor_dataset, args.seed)
+    narce_model_path = 'narce/saved_model/test/{}-{}-{}-{}-{}.pt'.format(args.nar_model, args.nar_dataset, args.adapter_model, args.sensor_dataset, args.seed)
 
     run = wandb.init(
     # Set the project where this run will be logged
@@ -236,6 +243,7 @@ if args.train == 'pipeline' or args.train == 'adapter':
         lr=learning_rate_adapter,
         criterion=criterion,
         save_path=narce_model_path,
+        is_train_adapter=True,
         device=device
         )
     

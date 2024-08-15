@@ -1,0 +1,116 @@
+import argparse
+import numpy as np
+from pathlib import Path
+
+import torch
+from torch import nn
+from torch.utils.data import DataLoader
+from torchinfo import summary
+
+from utils import set_seeds, create_src_causal_mask, CEDataset
+from train import test_narce, test
+from loss import focal_loss
+
+from mamba_ssm.models.config_mamba import MambaConfig
+from models import RNN, TCN, TSTransformer, BaselineMamba
+from nar_model import NARMamba, AdapterMamba, NarcePipeline
+
+
+parser = argparse.ArgumentParser(description='Model Evaluation')
+group = parser.add_mutually_exclusive_group()
+group.add_argument('--baseline', action='store_true')
+group.add_argument('--narce', action='store_true')
+parser.add_argument('-m', '--model', type=str, choices=['mamba2', 'narce_mamba2_6L', 'narce_mamba2_12L'])
+parser.add_argument('-s1', '--train_size', type=int, help='Size of the dataset this model is trained on', choices=[2000, 4000, 6000, 8000, 10000])
+parser.add_argument('-s2', '--nar_train_size', type=int, help='Size of the dataset this model is trained on', choices=[10000, 20000, 40000], required=False)
+parser.add_argument('-d', '--dataset', type=str, help='Test dataset', choices=['5min-part', '5min-full', '10min-part'])
+parser.add_argument('--seed', type=int, help='Random seed') #0, 17, 1243, 3674, 7341, 53, 97, 103, 191, 99719
+args = parser.parse_args()
+
+set_seeds(args.seed)
+
+
+""" Setting """
+
+batch_size = 256
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+criterion = focal_loss(alpha=torch.tensor([.005, 0.45, 0.45, 0.45]),gamma=2)
+
+
+""" Load datasets """
+if args.dataset == '5min-part':
+    test_data_file = './data/CE_dataset/ce5min_test_data.npy'
+    test_label_file = './data/CE_dataset/ce5min_test_labels.npy'
+elif args.dataset == '5min-full':
+    test_data_file = './data/CE_dataset/ce5min_full_test_data.npy'
+    test_label_file = './data/CE_dataset/ce5min_full_test_labels.npy'
+elif args.dataset == '10min-part':
+    test_data_file = './data/CE_dataset/ce10min_test_data.npy'
+    test_label_file = './data/CE_dataset/ce10min_test_labels.npy'
+else:
+    Exception("Dataset is not defined.") 
+
+
+test_data = np.load(test_data_file)
+test_labels = np.load(test_label_file)
+
+print(test_data_file)
+print(test_data.shape, test_labels.shape)
+
+test_dataset = CEDataset(test_data, test_labels)
+test_loader = DataLoader(test_dataset, 
+                            batch_size=batch_size, 
+                            shuffle=False
+                            )
+
+
+""" Load NN models """
+
+input_dim = test_data.shape[-1]
+nar_vocab_size = 9 # Depends on the # unique tokens NAR takes in, which is # classes of atomic event
+output_dim = 4 # The number of complex event classes
+
+if args.baseline:
+    if args.model == 'mamba2':
+        mamba_config = MambaConfig(d_model=input_dim, n_layer=12, ssm_cfg={"layer": "Mamba2", "headdim": 32,})
+        model = BaselineMamba(mamba_config, out_cls_dim=output_dim)
+
+    else:
+        raise Exception("Model is not defined.") 
+    model_path = 'baseline/saved_model/full/{}-{}-{}.pt'.format(args.model, args.train_size, args.seed)
+    
+elif args.narce:
+    if args.model == 'narce_mamba2_6L':
+        adapter_name = 'mamba2_6L'
+        adapter_model = AdapterMamba(d_model=input_dim, n_layer=6)
+    elif args.model == 'narce_mamba2_12L':
+        adapter_name = 'mamba2_12L'
+        adapter_model = AdapterMamba(d_model=input_dim, n_layer=12)
+    else:
+        raise Exception("Model is not defined.") 
+    
+    # mamba2_v1
+    mamba_config = MambaConfig(d_model=input_dim, n_layer=12, ssm_cfg={"layer": "Mamba2", "headdim": 32,})
+    nar_model = NARMamba(mamba_config, nar_vocab_size=nar_vocab_size, out_cls_dim=output_dim).nar
+    
+    model = NarcePipeline(
+        frozen_nar=nar_model,
+        adapter_model=adapter_model,
+    )
+    
+    model_path = 'narce/saved_model/pipeline/mamba2_v1-{}-{}-{}-{}.pt'.format(args.nar_train_size, adapter_name, args.train_size, args.seed)
+
+
+model.load_state_dict(torch.load(model_path))
+summary(model)
+
+
+""" Evaluation """
+
+
+test(
+    model=model,
+    data_loader=test_loader,
+    criterion=criterion,
+    device=device
+    )

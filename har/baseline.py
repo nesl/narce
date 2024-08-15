@@ -11,16 +11,15 @@ from utils import set_seeds, create_src_causal_mask, CEDataset
 from train import train, test
 from loss import focal_loss
 
-from models import RNN, TCN, TSTransformer
+from models import RNN, TCN, TSTransformer, BaselineMamba
 
 from mamba_ssm.models.config_mamba import MambaConfig
-from har.nar_model import MambaModel
+
  
 parser = argparse.ArgumentParser(description='NN Model Evaluation')
 parser.add_argument('model', type=str, choices=['lstm', 'tcn', 'transformer', 'ae_lstm', 'ae_tcn', 'ae_transformer', 'mamba1', 'mamba2'])
 parser.add_argument('dataset', type=int, help='Dataset size', choices=[2000, 4000, 6000, 8000, 10000])
 parser.add_argument('seed',  type=int, help='Random seed') #0, 17, 1243, 3674, 7341, 53, 97, 103, 191, 99719
-parser.add_argument('-p', '--pylon', action='store_true', help='use PYLON constraint during training')
 
 args = parser.parse_args()
 
@@ -39,12 +38,19 @@ criterion = focal_loss(alpha=torch.tensor([.005, 0.45, 0.45, 0.45]),gamma=2)
 """ Load datasets """
 
 if args.model == 'lstm' or args.model == 'tcn' or args.model == 'transformer' or args.model == 'mamba1' or args.model == 'mamba2':
-    train_data_file = './data/CE_dataset/ce5min_train_data_{}.npy'.format(args.dataset)
-    train_label_file = './data/CE_dataset/ce5min_train_labels_{}.npy'.format(args.dataset)
-    val_data_file = './data/CE_dataset/ce5min_val_data.npy'
-    val_label_file = './data/CE_dataset/ce5min_val_labels.npy'
-    test_data_file = './data/CE_dataset/ce5min_test_data.npy'
-    test_label_file = './data/CE_dataset/ce5min_test_labels.npy'
+    # train_data_file = './data/CE_dataset/ce5min_train_data_{}.npy'.format(args.dataset)
+    # train_label_file = './data/CE_dataset/ce5min_train_labels_{}.npy'.format(args.dataset)
+    # val_data_file = './data/CE_dataset/ce5min_val_data.npy'
+    # val_label_file = './data/CE_dataset/ce5min_val_labels.npy'
+    # test_data_file = './data/CE_dataset/ce5min_test_data.npy'
+    # test_label_file = './data/CE_dataset/ce5min_test_labels.npy'
+
+    train_data_file = './data/CE_dataset/ce5min_full_train_data_{}.npy'.format(args.dataset)
+    train_label_file = './data/CE_dataset/ce5min_full_train_labels_{}.npy'.format(args.dataset)
+    val_data_file = './data/CE_dataset/ce5min_full_val_data.npy'
+    val_label_file = './data/CE_dataset/ce5min_full_val_labels.npy'
+    test_data_file = './data/CE_dataset/ce5min_full_test_data.npy'
+    test_label_file = './data/CE_dataset/ce5min_full_test_labels.npy'
 
 elif args.model == 'ae_lstm' or args.model == 'ae_tcn' or args.model == 'ae_transformer':
     train_data_file = './data/CE_dataset/ae2ce5min_train_data_{}.npy'.format(args.dataset)
@@ -101,12 +107,12 @@ elif args.model == 'ae_transformer':
     model = TSTransformer(input_dim=input_dim, output_dim=output_dim, num_head=1, num_layers=6, pos_encoding=True)
 
 elif args.model == 'mamba1':
-    mamba_config = MambaConfig(d_model=input_dim, n_layer=12, vocab_size=output_dim, ssm_cfg={"layer": "Mamba1"})
-    model = MambaModel(mamba_config)
+    mamba_config = MambaConfig(d_model=input_dim, n_layer=12, ssm_cfg={"layer": "Mamba1"})
+    model = BaselineMamba(mamba_config, out_cls_dim=output_dim)
 
 elif args.model == 'mamba2':
-    mamba_config = MambaConfig(d_model=input_dim, n_layer=12, vocab_size=output_dim, ssm_cfg={"layer": "Mamba2", "headdim": 32,})
-    model = MambaModel(mamba_config)
+    mamba_config = MambaConfig(d_model=input_dim, n_layer=12, ssm_cfg={"layer": "Mamba2", "headdim": 32,})
+    model = BaselineMamba(mamba_config, out_cls_dim=output_dim)
 
 else:
     raise Exception("Model is not defined.") 
@@ -118,7 +124,7 @@ summary(model)
 
 # Creare dirctory if it doesn't exist
 Path('baseline/saved_model/').mkdir(parents=True, exist_ok=True)
-model_path = 'baseline/saved_model/{}-{}-{}.pt'.format(args.model, args.dataset, args.seed)
+model_path = 'baseline/saved_model/full/{}-{}-{}.pt'.format(args.model, args.dataset, args.seed)
 
 src_causal_mask = create_src_causal_mask(ce_train_data.shape[1]) if args.model == 'transformer' or args.model == 'ae_transformer' else None
 
