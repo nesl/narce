@@ -36,12 +36,13 @@ class CEDataset(Dataset):
         return len(self.data)
     
 
-class MultiTaskCEDataset(Dataset):
+class StateCEDataset(Dataset):
     def __init__(self, data, labels, in_states, out_states):
         self.data = data
         self.labels = labels
         self.in_states = in_states
         self.out_states = out_states
+        print(data.shape, labels.shape, in_states.shape, out_states.shape)
 
     def __getitem__(self, index):
         data = self.data[index]

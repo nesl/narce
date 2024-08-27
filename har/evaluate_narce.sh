@@ -2,7 +2,7 @@
 
 model=narce_mamba2_6L
 nar_dataset=40000
-eval_dataset='5min-full'
+eval_dataset='15min-part'
 
 for sensor_dataset in 2000 4000; do
     for seed in 53 97 103 191 99719; do # 0 17 1243 3674 7341 53 97 103 191 99719

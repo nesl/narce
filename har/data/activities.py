@@ -161,7 +161,7 @@ class Activity():
 
 
 class RestroomActivity(Activity):
-    def __init__(self, data_cat, enforce_window_length=None, fsm_list=None, simple_label=False):
+    def __init__(self, data_cat, enforce_window_length=None, fsm_list=None, simple_label=False, action_length_dict=None):
         """
         Args:
             data_cat (string): 'train' or 'test' dataset category.
@@ -169,6 +169,7 @@ class RestroomActivity(Activity):
             fsm_list (list): a list of FSM class instances.
             simple_label (bool): generate a single CE label if true, otherwise generate a list of CE labels corresponding to each timestamp.
         """
+        self.action_length_dict = action_length_dict
         super().__init__(name='restroom', data_cat=data_cat, fsm_list=fsm_list, simple_label=simple_label)
         self.enforce_window_length = enforce_window_length
 
@@ -180,6 +181,10 @@ class RestroomActivity(Activity):
         self.action_length['sit'] = (2, 24) # 10s - 2min
         self.action_length['flush_toilet'] = (1, 3) # 5s - 15s
         self.action_length['wash'] = (1, 12) # 5s - 1min
+
+        if self.action_length_dict is not None:
+            for action, action_len in self.action_length_dict.items():
+                self.action_length[action] = action_len
 
     def generate_activity(self):
         """
@@ -340,7 +345,7 @@ class DrinkingActivity(Activity):
     
 
 class OralCleaningActivity(Activity):
-    def __init__(self, data_cat, enforce_window_length=None, action_length={}, fsm_list=None, simple_label=False):
+    def __init__(self, data_cat, enforce_window_length=None, action_length={}, fsm_list=None, simple_label=False, action_length_dict=None):
         """
         Args:
             data_cat (string): 'train' or 'test' dataset category.
@@ -349,6 +354,7 @@ class OralCleaningActivity(Activity):
             fsm_list (list): a list of FSM class instances.
             simple_label (bool): generate a single CE label if true, otherwise generate a list of CE labels corresponding to each timestamp.
         """
+        self.action_length_dict = action_length_dict
         super().__init__(name='oral_clean', data_cat=data_cat, fsm_list=fsm_list, simple_label=simple_label)
         self.enforce_window_length = enforce_window_length
         if action_length: # if action_length is not empty
@@ -361,6 +367,10 @@ class OralCleaningActivity(Activity):
         self.action_length['walk'] = (1, 12) # 5s - 1min
         self.action_length['wash'] = (1, 12) # 5s - 1min
         self.action_length['brush_teeth'] = (3, 48) # 15s - 4min
+
+        if self.action_length_dict is not None:
+            for action, action_len in self.action_length_dict.items():
+                self.action_length[action] = action_len
 
     def generate_activity(self):
         """
@@ -401,7 +411,7 @@ class OralCleaningActivity(Activity):
 
 
 class HavingMealActivity(Activity):
-    def __init__(self, data_cat, enforce_window_length=None, fsm_list=None, simple_label=False):
+    def __init__(self, data_cat, enforce_window_length=None, fsm_list=None, simple_label=False, action_length_dict=None):
         """
         Args:
             data_cat (string): 'train' or 'test' dataset category.
@@ -409,8 +419,10 @@ class HavingMealActivity(Activity):
             fsm_list (list): a list of FSM class instances.
             simple_label (bool): generate a single CE label if true, otherwise generate a list of CE labels corresponding to each timestamp.
         """
+        self.action_length_dict = action_length_dict
         super().__init__(name='have_meal', data_cat=data_cat, fsm_list=fsm_list, simple_label=simple_label)
         self.enforce_window_length = enforce_window_length
+        
 
     def _define_actions(self):
         """
@@ -421,6 +433,10 @@ class HavingMealActivity(Activity):
         self.action_length['eat'] = (1, 2) # 5s - 10s
         self.action_length['sit'] = (1, 2) # 5s - 10s
         self.action_length['drink'] = (1, 3) # 5s - 15s
+
+        if self.action_length_dict is not None:
+            for action, action_len in self.action_length_dict.items():
+                self.action_length[action] = action_len
 
 
     def generate_activity(self):
