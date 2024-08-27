@@ -48,7 +48,7 @@ class EarlyStopper:
 
 
 def train(model, train_loader, val_loader, n_epochs, lr, criterion, save_path, src_mask=None, multi_task=False, criterion2=nn.CrossEntropyLoss(), device='cpu'):
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, betas=[0.9, 0.95], weight_decay=0.1, )
     # early_stopper = EarlyStopper(patience=50, min_delta=0.001)
     early_stopper = EarlyStopper(patience=30, min_delta=1e-4)
     summary = {'train_loss': [[] for _ in range(n_epochs)], 
