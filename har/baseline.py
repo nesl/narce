@@ -29,7 +29,7 @@ set_seeds(args.seed)
 """ Setting """
 
 batch_size = 256
-n_epochs = 20000
+n_epochs = 2000
 learning_rate = 1e-3
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 criterion = focal_loss(alpha=torch.tensor([.005, 0.45, 0.45, 0.45]),gamma=2)
