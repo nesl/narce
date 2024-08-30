@@ -22,7 +22,7 @@ group.add_argument('--baseline', action='store_true')
 group.add_argument('--narce', action='store_true')
 parser.add_argument('-m', '--model', type=str, choices=['mamba2', 'narce_mamba2_6L', 'narce_mamba2_12L', 'state_narce_mamba2_12L'])
 parser.add_argument('-s1', '--train_size', type=int, help='Size of the dataset this model is trained on', choices=[2000, 4000, 6000, 8000, 10000])
-parser.add_argument('-s2', '--nar_train_size', type=int, help='Size of the dataset this model is trained on', choices=[10000, 20000, 40000], required=False)
+parser.add_argument('-s2', '--nar_train_size', type=int, help='Size of the dataset the NAR model is trained on', choices=[10000, 20000, 40000], required=False)
 parser.add_argument('-d', '--dataset', type=str, help='Test dataset', choices=['5min-part', '5min-full', '15min-part', '15min-full'])
 parser.add_argument('--seed', type=int, help='Random seed') #0, 17, 1243, 3674, 7341, 53, 97, 103, 191, 99719
 args = parser.parse_args()
@@ -96,7 +96,7 @@ if args.baseline:
 
     else:
         raise Exception("Model is not defined.") 
-    model_path = 'baseline/saved_model/full/{}-{}-{}.pt'.format(args.model, args.train_size, args.seed)
+    model_path = 'baseline/saved_model/{}-{}-{}.pt'.format(args.model, args.train_size, args.seed)
     
 elif args.narce:
     if args.model == 'narce_mamba2_6L':
@@ -134,6 +134,8 @@ elif args.narce:
 model.load_state_dict(torch.load(model_path))
 summary(model)
 
+Path('evaluate/baseline/plots/').mkdir(parents=True, exist_ok=True)
+save_fig_dir = 'evaluate/baseline/plots/{}-{}-{}-{}.png'.format(args.dataset, args.model, args.train_size, args.seed)
 
 """ Evaluation """
 
@@ -142,6 +144,7 @@ if not has_state:
         model=model,
         data_loader=test_loader,
         criterion=criterion,
+        save_fig_dir=save_fig_dir,
         device=device
         )
 else:

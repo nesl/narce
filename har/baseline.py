@@ -18,7 +18,7 @@ from mamba_ssm.models.config_mamba import MambaConfig
  
 parser = argparse.ArgumentParser(description='NN Model Evaluation')
 parser.add_argument('model', type=str, choices=['lstm', 'tcn', 'transformer', 'ae_lstm', 'ae_tcn', 'ae_transformer', 'mamba1', 'mamba2'])
-parser.add_argument('dataset', type=int, help='Dataset size', choices=[4000, 6000, 8000, 10000, 20000])
+parser.add_argument('dataset', type=int, help='Dataset size', choices=[2000, 4000, 6000, 8000, 10000, 20000])
 parser.add_argument('seed',  type=int, help='Random seed') #0, 17, 1243, 3674, 7341, 53, 97, 103, 191, 99719
 
 args = parser.parse_args()
@@ -29,7 +29,7 @@ set_seeds(args.seed)
 """ Setting """
 
 batch_size = 256
-n_epochs = 2000
+n_epochs = 5000
 learning_rate = 1e-3
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 criterion = focal_loss(alpha=torch.tensor([.005, 0.45, 0.45, 0.45]),gamma=2)
@@ -101,16 +101,19 @@ elif args.model == 'tcn' or args.model == 'ae_tcn':
     model = TCN(input_size=input_dim, output_size=output_dim, num_channels=[256,256,256,256,256], kernel_size=2, dropout=0.2)
 
 elif args.model == 'transformer':
+    earlystop_min_delta = 1e-2
     model = TSTransformer(input_dim=input_dim, output_dim=output_dim, num_head=4, num_layers=6, pos_encoding=True)
 
 elif args.model == 'ae_transformer':
     model = TSTransformer(input_dim=input_dim, output_dim=output_dim, num_head=1, num_layers=6, pos_encoding=True)
 
 elif args.model == 'mamba1':
+    earlystop_min_delta = 1e-4
     mamba_config = MambaConfig(d_model=input_dim, n_layer=12, ssm_cfg={"layer": "Mamba1"})
     model = BaselineMamba(mamba_config, out_cls_dim=output_dim)
 
 elif args.model == 'mamba2':
+    earlystop_min_delta = 1e-4
     mamba_config = MambaConfig(d_model=input_dim, n_layer=12, ssm_cfg={"layer": "Mamba2", "headdim": 32,})
     model = BaselineMamba(mamba_config, out_cls_dim=output_dim)
 
@@ -137,10 +140,13 @@ train(
     n_epochs=n_epochs,
     lr=learning_rate,
     criterion=criterion,
+    min_delta=earlystop_min_delta,
     save_path=model_path,
     src_mask=src_causal_mask,
     device=device
     )
+
+# model.load_state_dict(torch.load(model_path))
 
 test(
     model=model,
