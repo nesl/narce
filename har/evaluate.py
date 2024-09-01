@@ -23,7 +23,7 @@ group.add_argument('--narce', action='store_true')
 parser.add_argument('-m', '--model', type=str, choices=['mamba2', 'narce_mamba2_6L', 'narce_mamba2_12L', 'state_narce_mamba2_12L'])
 parser.add_argument('-s1', '--train_size', type=int, help='Size of the dataset this model is trained on', choices=[2000, 4000, 6000, 8000, 10000])
 parser.add_argument('-s2', '--nar_train_size', type=int, help='Size of the dataset the NAR model is trained on', choices=[10000, 20000, 40000], required=False)
-parser.add_argument('-d', '--dataset', type=str, help='Test dataset', choices=['5min-part', '5min-full', '15min-part', '15min-full'])
+parser.add_argument('-d', '--dataset', type=str, help='Test dataset', choices=['5min-part', '5min-full', '15min'])
 parser.add_argument('--seed', type=int, help='Random seed') #0, 17, 1243, 3674, 7341, 53, 97, 103, 191, 99719
 args = parser.parse_args()
 
@@ -48,12 +48,9 @@ if not has_state:
     elif args.dataset == '5min-full':
         test_data_file = './data/CE_dataset/ce5min_full_test_data.npy'
         test_label_file = './data/CE_dataset/ce5min_full_test_labels.npy'
-    elif args.dataset == '15min-part':
+    elif args.dataset == '15min':
         test_data_file = './data/CE_dataset/ce15min_test_data.npy'
         test_label_file = './data/CE_dataset/ce15min_test_labels.npy'
-    elif args.dataset == '15min-full':
-        test_data_file = './data/CE_dataset/ce15min_full_test_data.npy'
-        test_label_file = './data/CE_dataset/ce15min_full_test_labels.npy'
     else:
         Exception("Dataset is not defined.") 
     test_data = np.load(test_data_file)

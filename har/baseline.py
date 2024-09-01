@@ -18,7 +18,7 @@ from mamba_ssm.models.config_mamba import MambaConfig
  
 parser = argparse.ArgumentParser(description='NN Model Evaluation')
 parser.add_argument('model', type=str, choices=['lstm', 'tcn', 'transformer', 'ae_lstm', 'ae_tcn', 'ae_transformer', 'mamba1', 'mamba2'])
-parser.add_argument('dataset', type=int, help='Dataset size', choices=[2000, 4000, 6000, 8000, 10000, 20000])
+parser.add_argument('dataset', type=int, help='Dataset size', choices=[100, 200, 400, 500, 600, 800, 1000, 2000, 4000, 6000, 8000, 10000, 20000])
 parser.add_argument('seed',  type=int, help='Random seed') #0, 17, 1243, 3674, 7341, 53, 97, 103, 191, 99719
 
 args = parser.parse_args()
@@ -38,13 +38,6 @@ criterion = focal_loss(alpha=torch.tensor([.005, 0.45, 0.45, 0.45]),gamma=2)
 """ Load datasets """
 
 if args.model == 'lstm' or args.model == 'tcn' or args.model == 'transformer' or args.model == 'mamba1' or args.model == 'mamba2':
-    # train_data_file = './data/CE_dataset/ce5min_train_data_{}.npy'.format(args.dataset)
-    # train_label_file = './data/CE_dataset/ce5min_train_labels_{}.npy'.format(args.dataset)
-    # val_data_file = './data/CE_dataset/ce5min_val_data.npy'
-    # val_label_file = './data/CE_dataset/ce5min_val_labels.npy'
-    # test_data_file = './data/CE_dataset/ce5min_test_data.npy'
-    # test_label_file = './data/CE_dataset/ce5min_test_labels.npy'
-
     train_data_file = './data/CE_dataset/ce5min_train_data_{}.npy'.format(args.dataset)
     train_label_file = './data/CE_dataset/ce5min_train_labels_{}.npy'.format(args.dataset)
     val_data_file = './data/CE_dataset/ce5min_val_data.npy'
