@@ -17,7 +17,7 @@ from mamba_ssm.models.config_mamba import MambaConfig
 
  
 parser = argparse.ArgumentParser(description='NN Model Evaluation')
-parser.add_argument('model', type=str, choices=['lstm', 'tcn', 'transformer', 'ae_lstm', 'ae_tcn', 'ae_transformer', 'mamba1', 'mamba2'])
+parser.add_argument('model', type=str, choices=['lstm', 'tcn', 'transformer', 'ae_lstm', 'ae_tcn', 'ae_transformer', 'mamba1', 'mamba2', 'ae_mamba1', 'ae_mamba2'])
 parser.add_argument('dataset', type=int, help='Dataset size', choices=[100, 200, 400, 500, 600, 800, 1000, 2000, 4000, 6000, 8000, 10000, 20000])
 parser.add_argument('seed',  type=int, help='Random seed') #0, 17, 1243, 3674, 7341, 53, 97, 103, 191, 99719
 
@@ -45,9 +45,11 @@ if args.model == 'lstm' or args.model == 'tcn' or args.model == 'transformer' or
     test_data_file = './data/CE_dataset/ce5min_test_data.npy'
     test_label_file = './data/CE_dataset/ce5min_test_labels.npy'
 
-elif args.model == 'ae_lstm' or args.model == 'ae_tcn' or args.model == 'ae_transformer':
+elif args.model == 'ae_lstm' or args.model == 'ae_tcn' or args.model == 'ae_transformer' or args.model == 'ae_mamba1' or args.model == 'ae_mamba2':
     train_data_file = './data/CE_dataset/ae2ce5min_train_data_{}.npy'.format(args.dataset)
     train_label_file = './data/CE_dataset/ae2ce5min_train_labels_{}.npy'.format(args.dataset)
+    val_data_file = './data/CE_dataset/ae2ce5min_val_data.npy'
+    val_label_file = './data/CE_dataset/ae2ce5min_val_labels.npy'
     test_data_file = './data/CE_dataset/ae2ce5min_test_data.npy'
     test_label_file = './data/CE_dataset/ae2ce5min_test_labels.npy'
 
@@ -88,27 +90,26 @@ input_dim = ce_train_data.shape[-1]
 output_dim = 4
 
 if args.model == 'lstm' or args.model == 'ae_lstm':
-    model = RNN(input_dim=input_dim, hidden_dim=128, output_dim=output_dim, num_layer=3)
+    earlystop_min_delta = 1e-2
+    model = RNN(input_dim=input_dim, hidden_dim=256, output_dim=output_dim, num_layer=5)
 
 elif args.model == 'tcn' or args.model == 'ae_tcn':
-    model = TCN(input_size=input_dim, output_size=output_dim, num_channels=[256,256,256,256,256], kernel_size=2, dropout=0.2)
+    earlystop_min_delta = 1e-2
+    model = TCN(input_size=input_dim, output_size=output_dim, num_channels=[128,128,128,256,256,256], kernel_size=3, dropout=0.2)
 
-elif args.model == 'transformer':
+elif args.model == 'transformer' or args.model == 'ae_transformer':
     earlystop_min_delta = 1e-2
     model = TSTransformer(input_dim=input_dim, output_dim=output_dim, num_head=4, num_layers=6, pos_encoding=True)
 
-elif args.model == 'ae_transformer':
-    model = TSTransformer(input_dim=input_dim, output_dim=output_dim, num_head=1, num_layers=6, pos_encoding=True)
-
-elif args.model == 'mamba1':
+elif args.model == 'mamba1' or args.model == 'ae_mamba1':
     earlystop_min_delta = 1e-4
-    mamba_config = MambaConfig(d_model=input_dim, n_layer=12, ssm_cfg={"layer": "Mamba1"})
-    model = BaselineMamba(mamba_config, out_cls_dim=output_dim)
+    mamba_config = MambaConfig(d_model=128, n_layer=12, ssm_cfg={"layer": "Mamba1"})
+    model = BaselineMamba(mamba_config, in_dim=input_dim, out_cls_dim=output_dim)
 
-elif args.model == 'mamba2':
+elif args.model == 'mamba2' or args.model == 'ae_mamba2':
     earlystop_min_delta = 1e-4
-    mamba_config = MambaConfig(d_model=input_dim, n_layer=12, ssm_cfg={"layer": "Mamba2", "headdim": 32,})
-    model = BaselineMamba(mamba_config, out_cls_dim=output_dim)
+    mamba_config = MambaConfig(d_model=128, n_layer=12, ssm_cfg={"layer": "Mamba2", "headdim": 32,})
+    model = BaselineMamba(mamba_config, in_dim=input_dim, out_cls_dim=output_dim)
 
 else:
     raise Exception("Model is not defined.") 
@@ -119,10 +120,10 @@ summary(model)
 """ Training and Testing """
 
 # Creare dirctory if it doesn't exist
-Path('baseline/saved_model/').mkdir(parents=True, exist_ok=True)
-model_path = 'baseline/saved_model/{}-{}-{}.pt'.format(args.model, args.dataset, args.seed)
-Path('baseline/plots/').mkdir(parents=True, exist_ok=True)
-save_fig_dir = 'baseline/plots/{}-{}-{}.png'.format(args.model, args.dataset, args.seed)
+Path('baseline/saved_model/{}/'.format(args.model)).mkdir(parents=True, exist_ok=True)
+model_path = 'baseline/saved_model/{}/{}-{}-{}.pt'.format(args.model, args.model, args.dataset, args.seed)
+Path('baseline/plots/{}/'.format(args.model)).mkdir(parents=True, exist_ok=True)
+save_fig_dir = 'baseline/plots/{}/{}-{}-{}.png'.format(args.model, args.model, args.dataset, args.seed)
 
 src_causal_mask = create_src_causal_mask(ce_train_data.shape[1]) if args.model == 'transformer' or args.model == 'ae_transformer' else None
 

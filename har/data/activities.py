@@ -46,6 +46,7 @@ class Activity():
         self.data_sequence = []
         self.action_label_sequence = []
         self.action_length = {}
+        self.activity_length = {}
         self.time_window_elapsed = 0
         self._define_actions()
 
@@ -61,21 +62,15 @@ class Activity():
         """
         Each activity is composed of atomic actions from the multimodal datset:
         {
-            'walk', 
-            'brush_teeth',
-            'click_mouse',
-            'drink',
-            'eat',
-            'type', 
-            'flush_toilet', 
-            'use_blender', 
-            'use_stove_burner', 
-            'clean_dishes', 
-            'chop',
-            'open_drawer',
-            'wash',
-            'peel'
-            # need to add: 'sit'
+            "brush_teeth": 0, 
+            "click_mouse": 1, 
+            "drink": 2, 
+            "eat": 3, 
+            "flush_toilet": 4, 
+            "sit": 5, 
+            "type": 6, 
+            "walk": 7, 
+            "wash": 8,
         }
         """
         raise NotImplementedError
@@ -157,11 +152,28 @@ class Activity():
             class_index_list.append(indices)
 
         return data, class_index_list
+    
+    def _create_random_seq(self, action_list, activity_t_range, weights=None):
+        """
+        action_list: List of actions used for generate the random sequence of a specifc activity.
+        activity_t_range: the min and max duration of the activity.
+        weights: probabilities associated with each entry in action_list.
+        """
+        t_start = self.time_window_elapsed
+        n_action = len(action_list)
+
+        activity_t_min, activity_t_max = activity_t_range
+        activity_t = np.random.randint(activity_t_min, activity_t_max + 1)
+
+        while (self.time_window_elapsed - t_start) < activity_t: # Note that the generated seq may be slightly longer than total_t
+            i = np.random.choice(a=n_action, size=1, p=weights)[0]
+            action = action_list[i]
+            self._add_actions(action)
+
         
 
-
 class RestroomActivity(Activity):
-    def __init__(self, data_cat, enforce_window_length=None, fsm_list=None, simple_label=False, action_length_dict=None):
+    def __init__(self, data_cat, enforce_window_length=None, fsm_list=None, simple_label=False, action_length_dict=None, activity_length_dict=None):
         """
         Args:
             data_cat (string): 'train' or 'test' dataset category.
@@ -170,6 +182,7 @@ class RestroomActivity(Activity):
             simple_label (bool): generate a single CE label if true, otherwise generate a list of CE labels corresponding to each timestamp.
         """
         self.action_length_dict = action_length_dict
+        self.activity_length_dict = activity_length_dict
         super().__init__(name='restroom', data_cat=data_cat, fsm_list=fsm_list, simple_label=simple_label)
         self.enforce_window_length = enforce_window_length
 
@@ -177,43 +190,87 @@ class RestroomActivity(Activity):
         """
         window size =  5s
         """
-        self.action_length['walk'] = (1, 12) # 5s - 1min
-        self.action_length['sit'] = (2, 24) # 10s - 2min
-        self.action_length['flush_toilet'] = (1, 3) # 5s - 15s
-        self.action_length['wash'] = (1, 12) # 5s - 1min
+        self.action_length['walk'] = (1, 3) # 5s - 15s
+        self.action_length['sit'] = (2, 4) # 10s - 20s
+        self.action_length['flush_toilet'] = (1, 2) # 5s - 10s
+        self.action_length['wash'] = (1, 6) # 5s - 30s
+        self.action_length['type'] = (1, 3) # 5s - 15s
+        self.action_length['click_mouse'] = (1, 2) # 5s - 10s
 
         if self.action_length_dict is not None:
             for action, action_len in self.action_length_dict.items():
                 self.action_length[action] = action_len
 
+        # For activities with random repeating pattern
+        self.activity_length['restroom'] = (2, 24) # 10s - 2min
+        self.activity_length['work'] = (3, 36) # 15s - 3min
+        self.activity_length['walk_in'] = (1, 4) # 5s - 20s
+        self.activity_length['wander'] = (36, 42) # 3min - 3.5min
+
+
+        if self.activity_length_dict is not None:
+            for activity, activity_len in self.activity_length_dict.items():
+                self.activity_length[activity] = activity_len
+
     def generate_activity(self):
         """
         Synthesize the restroom activity:
-            - walk1 -> wash1? -> sitting -> flush -> wash2? -> walk2 ('?' means a random action that may not happen)
+            - walk1 -> wash1? -> (sit + flush + walk2? + wash?)? -> wander -> work -> walk -> work -> walk ('?' means a random action that may not happen)
         """
-        wash_prob1 = 0.1
-        wash_prob2 = 0.7
+        ## cases when you walk for some time and wash, or after flush directly go back to work
+        use_restroom = 0.8
+        wash_prob1 = 0.2
+        wash_prob2 = 0.8
+        walk_prob = 0.9
+        sit_prob = 0.6
+
+        use_restroom_flag = False
 
         # walk action (walk in)
-        self._add_actions('walk')
+        action_list = ['walk']
+        self._create_random_seq(action_list, self.activity_length['walk_in'])
         
         # wash action (wash hands - may not happen)
         if np.random.rand() < wash_prob1:
             self._add_actions('wash')
 
-        # sit action (sit on toilet)
-        self._add_actions('sit')
+        if np.random.rand() < use_restroom: # Use restroom
+            use_restroom_flag = True
 
-        # flush action (flush the toilet)
-        self._add_actions('flush_toilet')
+            # sit action (sit on toilet)
+            self._add_actions('sit')
 
-        # wash action (wash hands - may not happen)
-        if np.random.rand() < wash_prob2:
-            self._add_actions('wash')
+            # flush action (flush the toilet)
+            self._add_actions('flush_toilet')
+
+            # walk action
+            if np.random.rand() < walk_prob:
+                self._add_actions('walk', window_length=1)
+
+            # wash action (wash hands - may not happen)
+            if np.random.rand() < wash_prob2:
+                self._add_actions('wash')
 
         # walk action (walk away)
+        action_list = ['walk', 'sit']
+        if not use_restroom_flag:
+            self.activity_length['wander'] = (4, 48) # 20s - 4min
+        self._create_random_seq(action_list, self.activity_length['wander'], weights=[0.9, 0.1])
+
+        # Start working
+        action_list = ['sit', 'type', 'click_mouse']
+        self._create_random_seq(action_list, self.activity_length['work'], weights=[0.5, 0.25, 0.25])
+        
+        # Take a break
         self._add_actions('walk')
 
+        # Start working
+        action_list = ['sit', 'type', 'click_mouse']
+        self._create_random_seq(action_list, self.activity_length['work'], weights=[0.5, 0.25, 0.25])
+        
+        # Take a break
+        self._add_actions('walk')
+    
         # Generate sequence of fixed length
         if self.enforce_window_length is not None:
             # Truncate the sequence
@@ -366,7 +423,8 @@ class OralCleaningActivity(Activity):
         """
         self.action_length['walk'] = (1, 12) # 5s - 1min
         self.action_length['wash'] = (1, 12) # 5s - 1min
-        self.action_length['brush_teeth'] = (3, 48) # 15s - 4min
+        self.action_length['brush_teeth'] = (3, 36) # 15s - 3min
+        self.action_length['sit'] = (3, 12) # 15s - 1min
 
         if self.action_length_dict is not None:
             for action, action_len in self.action_length_dict.items():
@@ -375,12 +433,17 @@ class OralCleaningActivity(Activity):
     def generate_activity(self):
         """
         Synthesize the oral cleaning activity:
-            - walk1 -> wash1? -> brush -> wash2 -> walk2 ('?' means a random action that may not happen)
+            - sit? -> walk1 -> wash1? -> brush -> wash2 -> (wash + brush)? -> walk2 ('?' means a random action that may not happen)
         """
         wash_prob = 0.6
+        brush_again_prob = 0.3
+        sit_prob = 0.3
+
+        if np.random.rand():
+            self._add_actions('sit')
 
         # walk action (walk in)
-        # self._add_actions('walk')
+        self._add_actions('walk')
 
         # wash action (wash before brushing teeth - may not happen)
         if np.random.rand() < wash_prob:
@@ -389,7 +452,17 @@ class OralCleaningActivity(Activity):
         # brush_teeth action
         self._add_actions('brush_teeth')
 
+        temp = self.action_length['wash']
+        # May wash + brush again 
+        if np.random.rand() < brush_again_prob:
+            self.action_length['wash'] = (1, 2) # 5s - 10s
+            self._add_actions('wash')
+            
+            self.action_length['brush_teeth'] = (1, 3) # 5s - 15s
+            self._add_actions('brush_teeth')
+
         # wash action after brushing teeth
+        self.action_length['wash'] = temp
         self._add_actions('wash')
 
         # walk action (walk away)
@@ -411,7 +484,7 @@ class OralCleaningActivity(Activity):
 
 
 class HavingMealActivity(Activity):
-    def __init__(self, data_cat, enforce_window_length=None, fsm_list=None, simple_label=False, action_length_dict=None):
+    def __init__(self, data_cat, enforce_window_length=None, fsm_list=None, simple_label=False, action_length_dict=None, activity_length_dict=None):
         """
         Args:
             data_cat (string): 'train' or 'test' dataset category.
@@ -420,61 +493,91 @@ class HavingMealActivity(Activity):
             simple_label (bool): generate a single CE label if true, otherwise generate a list of CE labels corresponding to each timestamp.
         """
         self.action_length_dict = action_length_dict
+        self.activity_length_dict = activity_length_dict
         super().__init__(name='have_meal', data_cat=data_cat, fsm_list=fsm_list, simple_label=simple_label)
         self.enforce_window_length = enforce_window_length
+
         
 
     def _define_actions(self):
         """
         window size =  5s
         """
-        self.action_length['walk'] = (1, 12) # 5s - 1min 
-        self.action_length['wash'] = (1, 12) # 5s - 1min
+        self.action_length['walk'] = (1, 4) # 5s - 20s 
+        self.action_length['wash'] = (1, 6) # 5s - 30s
         self.action_length['eat'] = (1, 2) # 5s - 10s
         self.action_length['sit'] = (1, 2) # 5s - 10s
         self.action_length['drink'] = (1, 3) # 5s - 15s
+        self.action_length['flush_toilet'] = (1, 2) # 5s - 10s
+        self.action_length['click_mouse'] = (1, 1) # 5s
+        self.action_length['type'] = (1, 1) # 5s
 
         if self.action_length_dict is not None:
             for action, action_len in self.action_length_dict.items():
                 self.action_length[action] = action_len
 
+        # For activities with random repeating pattern
+        self.activity_length['work'] = (3, 12) # 15s - 1min
+        self.activity_length['meal'] = (3, 18) # 15s - 2min
+
+        if self.activity_length_dict is not None:
+            for activity, activity_len in self.activity_length_dict.items():
+                self.activity_length[activity] = activity_len
+
 
     def generate_activity(self):
         """
         Synthesize the having meal activity:
-            - walk1 -> wash? -> eat + sit (intermittently) -> drink? -> walk2 ('?' means a random action that may not happen)
+            - wash? -> walk -> (restroom or work)? -> wash? -> meal -> walk2? -> wash? -> meal ('?' means a random action that may not happen)
         """
         wash_prob = 0.6
         drink_prob = 0.5
-
-        # walk action (walk in)
-        self._add_actions('walk')
+        other_prob = 0.3
+        walk_prob = 0.3
 
         # wash action (wash before having meal - may not happen)
         if np.random.rand() < wash_prob:
             self._add_actions('wash')
 
-        # eating action combined with sitting action
-        total_eating_t = 0
-        if self.enforce_window_length is not None:
-            total_eating_t = self.enforce_window_length - self.time_window_elapsed
-        else:
-            total_eating_t = np.random.randint(180, 360 + 1) # 15min - 30min
-        record_time = self.time_window_elapsed
-        while (self.time_window_elapsed - record_time) < total_eating_t:
-            self._add_actions('eat')
-            self._add_actions('sit')
+        # walk action (walk in)
+        self._add_actions('walk')
 
-        if self.enforce_window_length is None:
-            # drinking action (after having meal - may not happen)
-            if np.random.rand() < drink_prob:
-                self._add_actions('drink')
+        if np.random.rand() < other_prob: # Touch other objects
+            if np.random.rand() < 1/2: # Use restroom
+                self._add_actions('sit')
+                self._add_actions('sit')
+                self._add_actions('flush_toilet')
+            else: # Back to work
+                action_list = ['type', 'click_mouse', 'sit']
+                self._create_random_seq(action_list, self.activity_length['work'])
+            
+        # May wash again
+        if np.random.rand() < wash_prob:
+            self._add_actions('wash')
 
-            # walk action (walk away)
+        # have meals
+        action_list = ['sit', 'eat', 'drink']
+        self._create_random_seq(action_list, self.activity_length['meal'], weights=[0.3, 0.5, 0.2])
+
+        if np.random.rand() < walk_prob:
             self._add_actions('walk')
-        else:
+
+        if np.random.rand() < wash_prob:
+            self._add_actions('wash')
+
+        # have meals again
+        action_list = ['sit', 'eat', 'drink']
+        self._create_random_seq(action_list, self.activity_length['meal'], weights=[0.3, 0.5, 0.2])
+
+        # Generate sequence of fixed length
+        if self.enforce_window_length is not None:
             # Truncate the sequence
-            self._truncate_events(self.enforce_window_length)
+            if self.time_window_elapsed >= self.enforce_window_length:
+                self._truncate_events(self.enforce_window_length)
+            # Extend the sequence with the last action
+            else:
+                add_window_length = self.enforce_window_length - self.time_window_elapsed
+                self._add_actions('walk', window_length=add_window_length)
 
             self.time_window_elapsed = len(self.action_sequence)
 

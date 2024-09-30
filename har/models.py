@@ -118,20 +118,22 @@ class TCN(nn.Module):
 
 
 class TSTransformer(nn.Module):
-    def __init__(self, input_dim: int, output_dim:int, num_head=8, num_layers=6, pos_encoding=False, dropout=0.0):
+    def __init__(self, input_dim: int, output_dim:int, hidden_dim=128, num_head=8, num_layers=6, pos_encoding=False, dropout=0.0):
         '''Time-Series Transformer'''
         super().__init__()
         self.pos_encoding = pos_encoding
         if self.pos_encoding:
-            self.pos_encoder = PositionalEncoder(d_model=input_dim)
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=input_dim, nhead=num_head, batch_first=True)
+            self.pos_encoder = PositionalEncoder(d_model=hidden_dim)
+        self.projection = nn.Linear(input_dim, hidden_dim)
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_head, batch_first=True)
         self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
-        self.fc = nn.Linear(input_dim, output_dim)
+        self.fc = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, src, mask=None):
+        x = self.projection(src)
         if self.pos_encoding:
-            x = self.pos_encoder(src)
-        x = self.transformer_encoder(src, mask=mask)  # src should have dimension (N, S, E)
+            x = self.pos_encoder(x)
+        x = self.transformer_encoder(x, mask=mask)  # src should have dimension (N, S, E)
         x = self.fc(x)
         logits = torch.sigmoid(x)
         return logits
@@ -488,14 +490,35 @@ class BaselineMamba(nn.Module):
     def __init__(
     self, 
     mamba_config, 
+    in_dim,
     out_cls_dim,
     ) -> None:
         super().__init__()
-        d_model = mamba_config.d_model
+        hidden_dim = mamba_config.d_model
+        self.projection = nn.Linear(in_dim, hidden_dim)
         self.backbone = MambaModel(mamba_config)
-        self.classifier = nn.Linear(d_model, out_cls_dim)
+        self.classifier = nn.Linear(hidden_dim, out_cls_dim)
 
     def forward(self, x):
+        x = self.projection(x)
         x = self.backbone(x)
         x = self.classifier(x)
         return x
+    
+
+if __name__ == '__main__':
+    from torchinfo import summary
+    device = 'cuda:0'
+    batch_szie = 10
+    seq_len = 10000
+    input_dim = 4
+    
+    x = torch.rand(batch_szie, seq_len, input_dim).to(device)
+
+    
+    model = TCN(input_size=input_dim, output_size=4, num_channels=[128,128,128,256,256,256], kernel_size=3, dropout=0.2).to(device)
+    y = model(x)
+    summary(model)
+
+
+    print(y.shape)

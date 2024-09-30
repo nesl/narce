@@ -285,6 +285,7 @@ def test(model, data_loader, criterion, save_fig_dir, src_mask=None, multi_task=
 
     # Timewise evaluation
 
+    f1 = f1_score(all_labels, all_labels_pred, average=None)
     f1_all = f1_score(all_labels, all_labels_pred, average='macro')
     f1_pos = f1_score(all_labels, all_labels_pred, labels=[1,2,3], average='macro')
 
@@ -293,9 +294,10 @@ def test(model, data_loader, criterion, save_fig_dir, src_mask=None, multi_task=
     precision_avg = precision_score(all_labels, all_labels_pred, average='macro')
     recall_avg = recall_score(all_labels, all_labels_pred, average='macro')
 
-    print('Total loss:'.format(np.mean(summary['loss'])))
-    print('CE labels - Accuracy: {}, F1_all: {}, F1_positive: {}, Precision: {}, Avg_P: {}, Recall: {}, Avg_R: {}'.format(
+    print('Total loss: {}'.format(np.mean(summary['loss'])))
+    print('CE labels - Accuracy: {}, F1: {}, F1_all: {}, F1_positive: {}, Precision: {}, Avg_P: {}, Recall: {}, Avg_R: {}'.format(
                                                                                                                 np.mean(summary['acc_labels']),
+                                                                                                                f1,
                                                                                                                 f1_all,
                                                                                                                 f1_pos,
                                                                                                                 precision,
@@ -424,7 +426,7 @@ def test_iterative(model, data_loader, criterion, src_mask=None, criterion2=nn.C
     precision_avg = precision_score(all_labels, all_labels_pred, average='macro')
     recall_avg = recall_score(all_labels, all_labels_pred, average='macro')
 
-    print('Total loss:'.format(np.mean(summary['loss'])))
+    print('Total loss: {}'.format(np.mean(summary['loss'])))
     print('CE labels - Accuracy: {}, F1_all: {}, F1_positive: {}, Precision: {}, Avg_P: {}, Recall: {}, Avg_R: {}'.format(
                                                                                                                 np.mean(summary['acc_labels']),
                                                                                                                 f1_all,
@@ -661,7 +663,7 @@ def test_narce(model, data_loader, criterion, device='cpu'):
     precision_avg = precision_score(all_labels, all_labels_pred, average='macro')
     recall_avg = recall_score(all_labels, all_labels_pred, average='macro')
 
-    print('Total loss:'.format(np.mean(summary['loss'])))
+    print('Total loss: {}'.format(np.mean(summary['loss'])))
     print('CE labels - Accuracy: {}, F1_all: {}, F1_positive: {}, Precision: {}, Avg_P: {}, Recall: {}, Avg_R: {}'.format(
                                                                                                                 np.mean(summary['acc_labels']),
                                                                                                                 f1_all,
@@ -753,7 +755,7 @@ def test_narce_iterative(model, data_loader, criterion, criterion2=nn.CrossEntro
     precision_avg = precision_score(all_labels, all_labels_pred, average='macro')
     recall_avg = recall_score(all_labels, all_labels_pred, average='macro')
 
-    print('Total loss:'.format(np.mean(summary['loss'])))
+    print('Total loss: {}'.format(np.mean(summary['loss'])))
     print('CE labels - Accuracy: {}, F1_all: {}, F1_positive: {}, \n\tPrecision: {}, Avg_P: {}, \n\tRecall: {}, Avg_R: {}'.format(
                                                                                                                 np.mean(summary['acc_labels']),
                                                                                                                 f1_all,
