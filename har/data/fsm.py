@@ -9,7 +9,6 @@ class FSM():
         raise NotImplementedError
     
 
-    
 class Event1FSM(FSM):
     def __init__(self):
         super().__init__()
@@ -43,11 +42,6 @@ class Event1FSM(FSM):
                 # Remain in 's1_1' state
 
         return output
-
-
-
-   
-
 
 
 class Event2FSM(FSM):
@@ -124,8 +118,6 @@ class Event2FSM(FSM):
 
         return output
 
-
-
     
 class Event3FSM(FSM):
     def __init__(self):
@@ -185,8 +177,10 @@ class Event3FSM(FSM):
 
 
 if __name__=="__main__":
-    # Example input sequence:
     fsm = Event3FSM()
+
+    # Example input sequence:
+
     # activities = [
     #     'wash', 'wash', 'wash', 'wash',
     #     'walk', 'walk', 'walk', 'sit', 'sit', 'sit', 'sit', 'sit', 'sit', 'sit',
@@ -196,23 +190,28 @@ if __name__=="__main__":
     #     'walk', 'sit', 'eat', 'eat', 'walk', 'eat', 'sit', 'sit', 'sit', 'sit',
     #     'eat', 'walk', 'walk', 'sit', 'walk', 'walk', 'drink', 'drink', 'drink', 'eat'
     # ]
+
     # activities = [
     #     'sit', 'sit', 'wash', 'wash', 'wash', 'flush_toilet', 'wash', 'type', 'wash', 'type',
     #     'walk', 'walk', 'click_mouse', 'click_mouse', 'type', 'eat',  'eat', 'eat', 'walk', 'walk',
     # ]
+
     # activities = [
     #     'eat', 'eat', 'eat',  'eat', 'eat', 'sit', 'wash', 'eat'
     # ]
+
     # activities = ['walk', 'walk', 'walk', 'walk', 'eat', 'eat', 'eat', 'eat', 'sit', 'sit', 
     #               'sit', 'drink', 'drink', 'sit', 'sit', 'eat', 'wash', 'wash', 'wash', 'eat', 
     #               'eat', 'sit', 'sit', 'eat', 'eat', 'sit', 'sit', 'eat', 'eat', 'drink', 
     #               'walk', 'walk', 'walk', 'walk', 'walk', 'walk', 'walk'
     #               ]
+
     # activities = ['brush_teeth', 'brush_teeth', 'brush_teeth', 'brush_teeth', 'brush_teeth', 'brush_teeth', 'wash', 'wash', 'brush_teeth', 'brush_teeth', 
     #               'brush_teeth', 'brush_teeth', 'brush_teeth', 'brush_teeth', 'brush_teeth', 'brush_teeth', 'brush_teeth', 'brush_teeth', 'brush_teeth', 'brush_teeth', 
     #               'brush_teeth', 'brush_teeth', 'brush_teeth', 'brush_teeth', 'brush_teeth', 'brush_teeth', 'walk', 
     #               'walk', 'walk', 'walk', 'walk', 'walk', 'walk', 'walk', 'brush_teeth', 'brush_teeth',
     #               ]
+
     activities = ['walk', 'brush_teeth', 'brush_teeth', 'brush_teeth', 'brush_teeth', 
                   'brush_teeth',  'brush_teeth',  'brush_teeth',  'brush_teeth',  'brush_teeth',  
                   'brush_teeth',  'brush_teeth',  'brush_teeth',  'brush_teeth',  'brush_teeth',  
@@ -220,7 +219,6 @@ if __name__=="__main__":
                   'brush_teeth',  'brush_teeth',  'brush_teeth',  'brush_teeth',  'wash',
                   'wash',  'wash',  'wash',  'walk',  'walk',
                   ]
-    
 
     states = []
     labels = []
@@ -229,10 +227,6 @@ if __name__=="__main__":
         labels.append(l)
         print(i, l)
 
-
-
-    # output = sanitary_eating_violation_detector(activities)
     print(states)
     print(labels, len(labels))
     
-    # print(output == labels)
