@@ -221,7 +221,7 @@ class CE15min(CE5min):
                                            'wash': (1, 12) # 5s - 1min
                                            }
             restroom_activity_length_dict = {'work': (36, 120), # 3min - 10min
-                                             'wander': (48, 120), # 4min - 10min
+                                             'wander': (60, 84), # 5min - 7min # in order to make temporal span between 5min to 8min (may use restrrom for at most 45s before wandering)
                                              'walk_in': (12, 24), # 1min - 2min
                                             }
             event1_fsm = Event1FSM()
@@ -349,7 +349,97 @@ class CE3min(CE5min):
             raise Exception("event_id out of range.")
         
         return data_sequence, event_label_sequence, state_input_sequence, state_output_sequence, action_sequence, action_label_sequence, time_window_elapsed, t
+
+
+class CE30min(CE5min):
+    """
+    Generate events of only 5 minutes. 
+    The absolute time doesn't matter in this case.
+    """
+    def __init__(self, n_data, datat_cat, time_unit=5, simple_label=False):
+        """
+        Args:
+            n_data (int): number of data samples to generate.
+            datat_cat (string): 'train' or 'test' dataset category.
+        """
+        super().__init__(n_data=n_data, datat_cat=datat_cat, start_time="00:00", end_time="00:30", time_unit=time_unit, simple_label=simple_label)
+        self.datat_cat = datat_cat
+        self.simple_label = simple_label
         
+    def generate_event(self, event_id):
+        """
+        x,y, y[t] = a inidates the event a ends at time t
+        Event 0: no violation happening
+        Event 1: no washing hands after using restroom before other activities (except for walking), or walking away for more than 1 min (1 min window)
+        Event 2: no washing hands before meals (re-initialize states related washing if no eating happens in 10mins) (10 min window)
+        Event 3: brushing teeth in less than 2 minutes (if no brushing happens in 10 seconds than stop timing for brushing teeth) (2 min window)
+        """
+        t = self.start_time
+        total_time_window = self.total_time_window
+        datat_cat = self.datat_cat
+        time_window_elapsed = 0
+
+        data_sequence =[]
+        event_label_sequence = []
+        state_input_sequence = []
+        state_output_sequence = []
+        action_sequence = []
+        action_label_sequence = []
+
+        if event_id == 0:
+            #  Event 1
+            restroom_action_length_dict = {'walk': (3, 36), # 15s - 3min
+                                           'sit': (2, 96),  # 10s - 8min
+                                           'wash': (1, 12) # 5s - 1min
+                                           }
+            restroom_activity_length_dict = {'work': (60, 240), # 5min - 20min
+                                             'wander': (180, 300), # 15min - 25min
+                                             'walk_in': (24, 60), # 2min - 5min
+                                            }
+            event1_fsm = Event1FSM()
+            restroom_activity = RestroomActivity(datat_cat, enforce_window_length=total_time_window, fsm_list=[event1_fsm], simple_label=self.simple_label, action_length_dict=restroom_action_length_dict, activity_length_dict=restroom_activity_length_dict)
+            action_sequence, data_sequence, action_label_sequence, time_window = restroom_activity.generate_activity()
+            event_label_sequence, state_input_sequence, state_output_sequence = restroom_activity.generate_complex_label()
+            time_window_elapsed += time_window
+            t += time_window_elapsed * self.time_unit
+        
+        elif event_id == 1:
+            #  Event 2
+            meal_action_length_dict = {'walk': (3, 24), # 15s - 2min 
+                                       'wash': (1, 12), # 5s - 1min 
+                                        }
+            meal_activity_length_dict = {'work': (120, 240), # 10min - 20min
+                                         'meal': (36, 180), # 3min - 15min
+                                         'restroom_sit': (2, 96),  # 10s - 8min
+                                        }
+            event2_fsm = Event2FSM()
+            meal_activity = HavingMealActivity(datat_cat, enforce_window_length=total_time_window, fsm_list=[event2_fsm], simple_label=self.simple_label, action_length_dict=meal_action_length_dict, activity_length_dict=meal_activity_length_dict)
+            action_sequence, data_sequence, action_label_sequence, time_window = meal_activity.generate_activity()
+            event_label_sequence, state_input_sequence, state_output_sequence = meal_activity.generate_complex_label()
+            time_window_elapsed += time_window
+            t += time_window_elapsed * self.time_unit
+        
+        elif event_id == 2:
+            #  Event 3
+            oral_action_length_dict = {'walk': (12, 120), # 1min - 10min 
+                                       'wash': (1, 60), # 5s - 5min 
+                                       'brush_teeth': (3, 60), # 15s - 5min
+                                       'sit': (60, 120), # 5min - 10min
+                                       }
+            event3_fsm = Event3FSM()
+            oral_activity = OralCleaningActivity(datat_cat, enforce_window_length=total_time_window, fsm_list=[event3_fsm], simple_label=self.simple_label, action_length_dict=oral_action_length_dict)
+            action_sequence, data_sequence, action_label_sequence, time_window = oral_activity.generate_activity()
+            event_label_sequence, state_input_sequence, state_output_sequence = oral_activity.generate_complex_label()
+            time_window_elapsed += time_window
+            t += time_window_elapsed * self.time_unit
+
+        else:
+            raise Exception("event_id out of range.")
+        
+        return data_sequence, event_label_sequence, state_input_sequence, state_output_sequence, action_sequence, action_label_sequence, time_window_elapsed, t
+        
+
+
 
 
 class CECombo(CEGenerator):

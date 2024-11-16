@@ -31,16 +31,45 @@ class NARMamba(nn.Module):
 class AdapterMamba(nn.Module):
     def __init__(
     self,
-    d_model,
-    n_layer,
+    mamba_config,
     ) -> None:
         super().__init__()
-        mamba_config = MambaConfig(d_model=d_model, n_layer=n_layer, ssm_cfg={"layer": "Mamba2", "headdim": 32,})
         self.model = MambaModel(mamba_config)
 
     def forward(self, x):
         x = self.model(x)
         return x
+
+
+class AdapterMLP(nn.Module):
+    def __init__(
+    self,
+    input_dim,
+    hidden_dim, 
+    n_layer,
+    output_dim=128
+    ) -> None:
+        super().__init__()
+        layers = []
+
+        # Input layer to first hidden layer
+        layers.append(nn.Linear(input_dim, hidden_dim))
+        layers.append(nn.ReLU())
+
+        # Hidden layers  
+        for _ in range(n_layer - 1):
+            layers.append(nn.Linear(hidden_dim, hidden_dim))
+            layers.append(nn.ReLU())
+
+        # Output layer
+        layers.append(nn.Linear(hidden_dim, output_dim))
+
+        self.model = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x)
+    
+
 
 
 class NarcePipeline(nn.Module):

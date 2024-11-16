@@ -160,3 +160,39 @@ def generate_ae2ce_data(fusion_classifier, ce_data, ce_labels, device='cpu'):
     ae2ce_train_labels = np.concatenate(ae2ce_train_labels)
 
     return ae2ce_train_data, ae2ce_train_labels
+
+
+@torch.inference_mode
+def generate_softae2ce_data(fusion_classifier, ce_data, ce_labels, device='cpu'):
+    fusion_classifier.eval()
+    fusion_classifier.to(device)
+
+    ce_dataset = CEDataset(ce_data, ce_labels)
+    ce_loader = DataLoader(ce_dataset, batch_size=256, shuffle=False)
+
+    windows = ce_data.shape[1]
+    ae2ce_train_data = []
+    ae2ce_train_labels = []
+
+
+    for ce_embeds, ce_labels in tqdm(ce_loader):
+        ce_embeds = ce_embeds.to(device)
+        ce_labels = ce_labels.to(device)
+        preds = []
+        for t in range(windows):
+            embeds = ce_embeds[:,t,:]
+            # Run the Net
+            x = fusion_classifier(embeds)         
+            x = torch.unsqueeze(x, 1)
+
+            preds.append(x)
+        
+        preds = np.concatenate(preds, axis=1)
+        ae2ce_train_data.append(preds)
+        ae2ce_train_labels.append(ce_labels)
+
+
+    ae2ce_train_data = np.concatenate(ae2ce_train_data)
+    ae2ce_train_labels = np.concatenate(ae2ce_train_labels)
+
+    return ae2ce_train_data, ae2ce_train_labels

@@ -12,7 +12,7 @@ from train import train_narce, test_narce, test_narce_iterative
 from loss import focal_loss
 
 from mamba_ssm.models.config_mamba import MambaConfig
-from nar_model import NARMamba, AdapterMamba, NarcePipeline, StateNarce
+from nar_model import NARMamba, AdapterMamba, NarcePipeline, StateNarce, AdapterMLP
 
 import os
 import re
@@ -21,7 +21,7 @@ import re
  
 parser = argparse.ArgumentParser(description='NARCE Pipeline Training')
 parser.add_argument('nar_model', type=str, choices=['mamba1_v1', 'mamba2_v1', 'state_mamba2_v1'])
-parser.add_argument('adapter_model', type=str, choices=['mamba1_2L', 'mamba1_4L', 'mamba1_6L','mamba1_12L', 'mamba2_6L', 'mamba2_12L', 'mlp_3L', 'None'])
+parser.add_argument('adapter_model', type=str, choices=['mamba1_2L', 'mamba1_4L', 'mamba1_6L','mamba1_12L', 'mamba2_6L', 'mamba2_12L', 'mlp_1L','mlp_2L','mlp_3L', 'None'])
 parser.add_argument('train', type=str, choices=['pipeline', 'nar', 'adapter'])
 parser.add_argument('nar_dataset', type=int, help='Dataset size', choices=[10000, 20000, 40000])
 parser.add_argument('sensor_dataset', type=int, help='Dataset size', choices=[1000, 2000, 4000, 6000, 8000, 10000])
@@ -38,12 +38,12 @@ set_seeds(args.seed)
 batch_size_nar = 256
 batch_size_adapter = 256
 n_epochs_nar = 4000 #5000
-n_epochs_adapter = 20000 #20000
+n_epochs_adapter = 5000 #20000
 learning_rate_nar = 1e-3
 learning_rate_adapter = 1e-3
 print("learning_rate_adapter:", learning_rate_adapter)
 device = torch.device("cuda:{}".format(args.gpu) if torch.cuda.is_available() else "cpu")
-criterion = focal_loss(alpha=torch.tensor([.005, 0.45, 0.45, 0.45]),gamma=2)
+criterion = focal_loss(alpha=torch.tensor([.005, 0.45, 0.45, 0.45]),gamma=2) #nn.CrossEntropyLoss()
 has_state = False
 if args.nar_model == 'state_mamba2_v1':
     has_state = True
@@ -58,12 +58,12 @@ if not has_state:
     nar_test_data_file = './data/CE_dataset/nar_5min_test_data.npy'
     nar_test_label_file = './data/CE_dataset/nar_5min_test_labels.npy'
 
-    sensor_train_data_file = './data/CE_dataset/ce5min_train_data_{}.npy'.format(args.sensor_dataset)
-    sensor_train_label_file = './data/CE_dataset/ce5min_train_labels_{}.npy'.format(args.sensor_dataset)
-    sensor_val_data_file = './data/CE_dataset/ce5min_val_data.npy'
-    sensor_val_label_file = './data/CE_dataset/ce5min_val_labels.npy'
-    sensor_test_data_file = './data/CE_dataset/ce5min_test_data.npy'
-    sensor_test_label_file = './data/CE_dataset/ce5min_test_labels.npy'
+    sensor_train_data_file = './data/CE_dataset/softae2ce5min_train_data_{}.npy'.format(args.sensor_dataset)
+    sensor_train_label_file = './data/CE_dataset/softae2ce5min_train_labels_{}.npy'.format(args.sensor_dataset)
+    sensor_val_data_file = './data/CE_dataset/softae2ce5min_val_data.npy'
+    sensor_val_label_file = './data/CE_dataset/softae2ce5min_val_labels.npy'
+    sensor_test_data_file = './data/CE_dataset/softae2ce5min_test_data.npy'
+    sensor_test_label_file = './data/CE_dataset/softae2ce5min_test_labels.npy'
 
     nar_train_data = np.load(nar_train_data_file)
     nar_train_labels = np.load(nar_train_label_file)
@@ -266,22 +266,8 @@ if args.train == 'pipeline' or args.train == 'adapter':
         if adapter_model_type == 'mamba1':
             mamba_config = MambaConfig(d_model=embedding_input_dim, n_layer=num_layers, ssm_cfg={"layer": "Mamba1"})
             adapter = AdapterMamba(mamba_config)
-        elif args.adapter_model == 'mlp_3L':
-            class MLPEncoder(nn.Module):
-                def __init__(self, input_dim, hidden_dim, output_dim=128):
-                    super(MLPEncoder, self).__init__()
-                    self.fc1 = nn.Linear(input_dim, hidden_dim)
-                    self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-                    self.fc3 = nn.Linear(hidden_dim, output_dim)
-                    
-                def forward(self, x):
-                    x = nn.functional.relu(self.fc1(x))
-                    x = nn.functional.relu(self.fc2(x))
-                    x = self.fc3(x)
-                    return x
-
-            
-            adapter = MLPEncoder(input_dim=embedding_input_dim, hidden_dim=256)
+        elif adapter_model_type == 'mlp':
+            adapter = AdapterMLP(input_dim=embedding_input_dim, hidden_dim=256, n_layer=num_layers)
             # adapter = MLPEncoder(input_dim=embedding_input_dim)
 
         else:
@@ -319,8 +305,8 @@ if args.train == 'pipeline' or args.train == 'adapter':
 
     summary(narce_model)
 
-    Path('narce/saved_model/pipeline/').mkdir(parents=True, exist_ok=True)
-    narce_model_path = 'narce/saved_model/pipeline/{}-{}-{}-{}-{}.pt'.format(args.nar_model, args.nar_dataset, args.adapter_model, args.sensor_dataset, args.seed)
+    Path('narce_simple/saved_model/pipeline/cross-entropy/').mkdir(parents=True, exist_ok=True)
+    narce_model_path = 'narce_simple/saved_model/pipeline/cross-entropy/{}-{}-{}-{}-{}.pt'.format(args.nar_model, args.nar_dataset, args.adapter_model, args.sensor_dataset, args.seed)
 
     # run = wandb.init(
     # # Set the project where this run will be logged

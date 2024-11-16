@@ -461,17 +461,14 @@ def train_narce(model,
                 lr, 
                 criterion, 
                 save_path, 
-                is_train_adapter=False, 
+                min_delta,
                 has_state=False, 
                 state_criterion=nn.CrossEntropyLoss(), 
                 device='cpu'):
     
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, betas=[0.9, 0.95], weight_decay=0.1, )
     # early_stopper = EarlyStopper(patience=50, min_delta=0.001)
-    if is_train_adapter:
-        early_stopper = EarlyStopper(patience=30, min_delta=1e-4)
-    else:
-        early_stopper = EarlyStopper(patience=30, min_delta=1e-6)
+    early_stopper = EarlyStopper(patience=30, min_delta=min_delta)
     summary = {'train_loss': [[] for _ in range(n_epochs)], 
                'train_label_acc': [[] for _ in range(n_epochs)], 
                'train_state_acc': [[] for _ in range(n_epochs)], 
@@ -589,29 +586,54 @@ def train_narce(model,
                 np.mean(summary['val_state_acc'][e]), ))
             
         # Log to wandb for plots    
-        metrics = {"train/train_loss": np.mean(summary['train_loss'][e]),
-                   "train/train_acc": np.mean(summary['train_label_acc'][e]),
-                   "train/epoch": e,
-                   "val/val_loss": np.mean(summary['val_loss'][e]),
-                   "val/val_acc": np.mean(summary['val_label_acc'][e]),
-                   "val/epoch": e,
-                   }
-        wandb.log(metrics)
+        # metrics = {"train/train_loss": np.mean(summary['train_loss'][e]),
+        #            "train/train_acc": np.mean(summary['train_label_acc'][e]),
+        #            "val/val_loss": np.mean(summary['val_loss'][e]),
+        #            "val/val_acc": np.mean(summary['val_label_acc'][e]),
+        #            }
+        # wandb.log(metrics)
         
         if np.mean(summary['val_loss'][e]) < early_stopper.min_validation_loss:
-            best_model = copy.deepcopy(model)
+            best_model_state = model.state_dict()
 
         # Save the best model every 1000 epochs
         if e % 1000 == 0 and e > 0:
-            torch.save(best_model.state_dict(), save_path)
+            torch.save(best_model_state, save_path)
 
         if early_stopper.early_stop(np.mean(summary['val_loss'][e])):  
             print("Early-stop at epoch:", e)           
             break
 
-    
     # Save model after training
-    torch.save(best_model.state_dict(), save_path)
+    # Update the model with the best one after training=
+    torch.save(best_model_state, save_path)
+    model.load_state_dict(torch.load(save_path))
+
+    #     if np.mean(summary['val_loss'][e]) < early_stopper.min_validation_loss:
+    #         best_model = copy.deepcopy(model)
+
+    #     # Save the best model every 1000 epochs
+    #     if e % 1000 == 0 and e > 0:
+    #         torch.save(best_model.state_dict(), save_path)
+
+    #     if early_stopper.early_stop(np.mean(summary['val_loss'][e])):  
+    #         print("Early-stop at epoch:", e)           
+    #         break
+
+    
+    # # Update the model with the best one after training
+    # model = best_model
+    # torch.save(model.state_dict(), save_path)
+
+    #     # Save the model every 1000 epochs
+    #     if e % 1000 == 0 and e > 0:
+    #         torch.save(model.state_dict(), save_path)
+
+    #     if early_stopper.early_stop(np.mean(summary['val_loss'][e])):  
+    #         print("Early-stop at epoch:", e)           
+    #         break
+
+    # torch.save(model.state_dict(), save_path)
 
     return summary
 

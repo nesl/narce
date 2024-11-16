@@ -17,7 +17,9 @@ from mamba_ssm.models.config_mamba import MambaConfig
 
  
 parser = argparse.ArgumentParser(description='NN Model Evaluation')
-parser.add_argument('model', type=str, choices=['lstm', 'tcn', 'transformer', 'ae_lstm', 'ae_tcn', 'ae_transformer', 'mamba1', 'mamba2', 'ae_mamba1', 'ae_mamba2'])
+parser.add_argument('model', type=str, choices=['lstm', 'tcn', 'transformer', 'ae_lstm', 'ae_tcn', 'ae_transformer',  \
+                                                'mamba1', 'mamba2', 'ae_mamba1', 'ae_mamba2'\
+                                                'soft_ae_lstm', 'soft_ae_tcn', 'soft_ae_transformer','soft_ae_mamba1'])
 parser.add_argument('dataset', type=int, help='Dataset size', choices=[100, 200, 400, 500, 600, 800, 1000, 2000, 4000, 6000, 8000, 10000, 20000])
 parser.add_argument('seed',  type=int, help='Random seed') #0, 17, 1243, 3674, 7341, 53, 97, 103, 191, 99719
 
@@ -52,6 +54,14 @@ elif args.model == 'ae_lstm' or args.model == 'ae_tcn' or args.model == 'ae_tran
     val_label_file = './data/CE_dataset/ae2ce5min_val_labels.npy'
     test_data_file = './data/CE_dataset/ae2ce5min_test_data.npy'
     test_label_file = './data/CE_dataset/ae2ce5min_test_labels.npy'
+
+elif args.model == 'soft_ae_lstm' or args.model == 'soft_ae_tcn' or args.model == 'soft_ae_transformer' or args.model == 'soft_ae_mamba1':
+    train_data_file = './data/CE_dataset/softae2ce5min_train_data_{}.npy'.format(args.dataset)
+    train_label_file = './data/CE_dataset/softae2ce5min_train_labels_{}.npy'.format(args.dataset)
+    val_data_file = './data/CE_dataset/softae2ce5min_val_data.npy'
+    val_label_file = './data/CE_dataset/softae2ce5min_val_labels.npy'
+    test_data_file = './data/CE_dataset/softae2ce5min_test_data.npy'
+    test_label_file = './data/CE_dataset/softae2ce5min_test_labels.npy'
 
 else:
     raise Exception("Unknown dataset.")
@@ -89,20 +99,20 @@ ce_test_loader = DataLoader(ce_test_dataset,
 input_dim = ce_train_data.shape[-1]
 output_dim = 4
 
-if args.model == 'lstm' or args.model == 'ae_lstm':
+if args.model == 'lstm' or args.model == 'ae_lstm' or args.model == 'soft_ae_lstm':
     earlystop_min_delta = 1e-2
     model = RNN(input_dim=input_dim, hidden_dim=256, output_dim=output_dim, num_layer=5)
 
-elif args.model == 'tcn' or args.model == 'ae_tcn':
+elif args.model == 'tcn' or args.model == 'ae_tcn' or args.model == 'soft_ae_tcn':
     earlystop_min_delta = 1e-2
-    model = TCN(input_size=input_dim, output_size=output_dim, num_channels=[128,128,128,256,256,256], kernel_size=3, dropout=0.2)
+    model = TCN(input_size=input_dim, output_size=output_dim, num_channels=[256,256,256,256,256,256], kernel_size=3, dropout=0.2)
 
-elif args.model == 'transformer' or args.model == 'ae_transformer':
+elif args.model == 'transformer' or args.model == 'ae_transformer' or args.model == 'soft_ae_transformer':
     earlystop_min_delta = 1e-2
     model = TSTransformer(input_dim=input_dim, output_dim=output_dim, num_head=4, num_layers=6, pos_encoding=True)
 
-elif args.model == 'mamba1' or args.model == 'ae_mamba1':
-    earlystop_min_delta = 1e-4
+elif args.model == 'mamba1' or args.model == 'ae_mamba1' or args.model == 'soft_ae_mamba1':
+    earlystop_min_delta = 1e-3
     mamba_config = MambaConfig(d_model=128, n_layer=12, ssm_cfg={"layer": "Mamba1"})
     model = BaselineMamba(mamba_config, in_dim=input_dim, out_cls_dim=output_dim)
 

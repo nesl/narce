@@ -254,7 +254,7 @@ class RestroomActivity(Activity):
         # walk action (walk away)
         action_list = ['walk', 'sit']
         if not use_restroom_flag:
-            self.activity_length['wander'] = (4, 48) # 20s - 4min
+            self.activity_length['wander'] = (4, 48) # 20s - 4min if didn't use restroom
         self._create_random_seq(action_list, self.activity_length['wander'], weights=[0.9, 0.1])
 
         # Start working
@@ -519,6 +519,7 @@ class HavingMealActivity(Activity):
         # For activities with random repeating pattern
         self.activity_length['work'] = (3, 12) # 15s - 1min
         self.activity_length['meal'] = (3, 18) # 15s - 2min
+        self.activity_length['restroom_sit'] = (2, 4) # 10s - 20s
 
         if self.activity_length_dict is not None:
             for activity, activity_len in self.activity_length_dict.items():
@@ -531,7 +532,6 @@ class HavingMealActivity(Activity):
             - wash? -> walk -> (restroom or work)? -> wash? -> meal -> walk2? -> wash? -> meal ('?' means a random action that may not happen)
         """
         wash_prob = 0.6
-        drink_prob = 0.5
         other_prob = 0.3
         walk_prob = 0.3
 
@@ -544,8 +544,8 @@ class HavingMealActivity(Activity):
 
         if np.random.rand() < other_prob: # Touch other objects
             if np.random.rand() < 1/2: # Use restroom
-                self._add_actions('sit')
-                self._add_actions('sit')
+                action_list = ['sit']
+                self._create_random_seq(action_list, self.activity_length['restroom_sit'])
                 self._add_actions('flush_toilet')
             else: # Back to work
                 action_list = ['type', 'click_mouse', 'sit']

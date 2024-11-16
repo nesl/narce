@@ -113,7 +113,7 @@ class TCN(nn.Module):
         y1 = self.tcn(inputs.transpose(-1,1))  # input should have dimension (N, C, L)
         o = self.linear(y1.transpose(-1,1)) # input to Linear layer should have dimension (N, L, C)
 #         o = self.linear(y1[:, :, -1]) # for simple label
-        return torch.sigmoid(o)
+        return o
 
 
 
@@ -135,8 +135,8 @@ class TSTransformer(nn.Module):
             x = self.pos_encoder(x)
         x = self.transformer_encoder(x, mask=mask)  # src should have dimension (N, S, E)
         x = self.fc(x)
-        logits = torch.sigmoid(x)
-        return logits
+        # logits = torch.sigmoid(x)
+        return x
 
     
 class PositionalEncoder(torch.nn.Module):
